@@ -5,6 +5,8 @@
     <strong>On-demand, zero-persistence ephemeral endpoints for secure SMS and Email routing.</strong>
   </p>
   <br />
+  <img src="docs/hero.png" alt="Acheron Link Dashboard" width="800" />
+  <br />
 </div>
 
 <hr />
