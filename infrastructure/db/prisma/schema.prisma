@@ -1,0 +1,69 @@
+// This is your Prisma schema file
+// Learn more about it at: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ────────────────────────────────────────────────────────────────────
+
+enum Tier {
+  FREE
+  PREMIUM
+}
+
+enum CredentialType {
+  EMAIL
+  SMS
+}
+
+// ─── Models ───────────────────────────────────────────────────────────────────
+
+/// Represents an anonymous or registered user session.
+/// Phase 1 uses anonymous sessions (sessionToken only).
+/// Auth fields (email, passwordHash) are scaffolded for Phase 2.
+model User {
+  id            String             @id @default(cuid())
+  /// Unique anonymous session token assigned on first visit
+  sessionToken  String             @unique
+  /// Reserved for Phase 2 authenticated accounts
+  email         String?            @unique
+  /// Argon2/bcrypt hash — null for anonymous sessions
+  passwordHash  String?
+  tier          Tier               @default(FREE)
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+  credentials   ActiveCredential[]
+
+  @@index([sessionToken])
+}
+
+/// A single active disposable credential (email address or SMS number).
+/// Expired records are NOT deleted by Postgres — they are soft-expired
+/// via Redis TTL and cleaned up by the background keyspace subscriber.
+model ActiveCredential {
+  id          String         @id @default(cuid())
+  userId      String
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type        CredentialType
+  /// The actual credential value:
+  ///   EMAIL → "abc123@cloak.mail"
+  ///   SMS   → "+14155551234"
+  value       String         @unique
+  /// Twilio IncomingPhoneNumber SID — required for releasing the number
+  twilioSid   String?
+  /// TTL in seconds as requested by the user (for reference/display)
+  ttlSeconds  Int
+  expiresAt   DateTime
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@index([type])
+}

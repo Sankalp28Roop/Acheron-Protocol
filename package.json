@@ -1,0 +1,25 @@
+{
+  "name": "cloakcomms",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "services/*"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev --workspace=services/gateway\" \"npm run dev --workspace=apps/web\"",
+    "build": "npm run build --workspaces",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "db:generate": "prisma generate --schema=infrastructure/db/prisma/schema.prisma",
+    "db:migrate": "prisma migrate dev --schema=infrastructure/db/prisma/schema.prisma",
+    "db:studio": "prisma studio --schema=infrastructure/db/prisma/schema.prisma"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "prisma": "^5.22.0",
+    "typescript": "^5.6.3"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=10.0.0"
+  }
+}

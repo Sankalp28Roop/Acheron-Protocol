@@ -1,0 +1,46 @@
+version: '3.9'
+
+services:
+  # ── PostgreSQL (Local Database) ──────────────────────────────────────────
+  postgres-db:
+    image: postgres:16-alpine
+    container_name: cloakcomms_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-cloakcomms}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-cloakcomms_secret}
+      POSTGRES_DB: ${POSTGRES_DB:-cloakcomms}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-cloakcomms}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Redis (Ephemeral TTL Cache) ──────────────────────────────────────────
+  redis-cache:
+    image: redis:7-alpine
+    container_name: cloakcomms_redis
+    restart: unless-stopped
+    # Zero-retention: disable RDB and AOF persistence completely. 
+    # Enable Keyspace Notifications (KEA) for automated cleanup hooks.
+    command: >
+      redis-server
+      --requirepass ${REDIS_PASSWORD:-redis_secret}
+      --save ""
+      --appendonly no
+      --notify-keyspace-events KEA
+    ports:
+      - "6379:6379"
+    # Note: No volume is mounted because no data should persist across restarts
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-redis_secret}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
